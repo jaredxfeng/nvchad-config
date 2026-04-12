@@ -6,16 +6,17 @@ return {
     config = function()
       local dap = require("dap")
 
-      -- === JavaScript / TypeScript Debug Adapter ===
+      -- === JavaScript / TypeScript Debug Adapter (robust version) ===
       dap.adapters["pwa-node"] = {
         type = "server",
-        host = "localhost",
+        host = "::1",
         port = "${port}",
         executable = {
           command = "node",
           args = {
             vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js",
-            "${port}" },
+            "${port}",
+          },
         },
       }
 
@@ -55,6 +56,7 @@ return {
             cwd = "${workspaceFolder}",
             console = "integratedTerminal",
             skipFiles = { "<node_internals>/**", "node_modules/**" },
+            stopOnEntry = true,
           },
           {
             type = "pwa-node",
@@ -68,12 +70,21 @@ return {
             type = "pwa-node",
             request = "launch",
             name = "Pick script (npm)",
-            runTimeArgs = { "run", pick_script },
+            runtimeExecutable = "npm",
+            runtimeArgs = function()     -- ← now lazily calls pick_script at launch time
+              local script = pick_script()
+              if script == require("dap").ABORT then
+                return require("dap").ABORT
+              end
+              return { "run", script }
+            end,
+            runtimeArgs = { "run", pick_script },
             cwd = "${workspaceFolder}",
             console = "integratedTerminal",
             internalConsoleOptions = "neverOpen",
             skipFiles = { "<node_internals>/**", "node_modules/**" },
             sourceMaps = true,
+            stopOnEntry = true,
           }, 
         }
       end

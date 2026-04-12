@@ -1,6 +1,7 @@
 return {
   {
     "mfussenegger/nvim-dap",
+    dependencies = { "banjo/package-pilot.nvim" },
     event = "VeryLazy",                    -- ← forces early loading so keymaps work immediately
     config = function()
       local dap = require("dap")
@@ -8,15 +9,42 @@ return {
       -- === JavaScript / TypeScript Debug Adapter ===
       dap.adapters["pwa-node"] = {
         type = "server",
-        host = "::1",
+        host = "localhost",
         port = "${port}",
         executable = {
-          command = "js-debug-adapter",
-          args = { "${port}" },
+          command = "node",
+          args = {
+            vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js",
+            "${port}" },
         },
       }
 
+      local function pick_script()
+        local pilot = require("package-pilot")
+
+        local current_dir = vim.fn.getcwd()
+        local package = pilot.find_package_file({ dir = current_dir })
+
+        if not package then
+          vim.notify("No package.json found", vim.log.levels.ERROR)
+          return require("dap").ABORT
+        end
+
+        local scripts = pilot.get_all_scripts(package)
+
+        local label_fn = function(script)
+          return script
+        end
+
+        local co, ismain = coroutine.running()
+        local ui = require("dap.ui")
+        local pick = (co and not ismain) and ui.pick_one or ui.pick_one_sync
+        local result = pick(scripts, "Select script", label_fn)
+        return result or require("dap").ABORT
+      end
+
       local js_filetypes = { "typescript", "javascript", "typescriptreact", "javascriptreact" }
+
       for _, ft in ipairs(js_filetypes) do
         dap.configurations[ft] = {
           {
@@ -36,6 +64,17 @@ return {
             cwd = "${workspaceFolder}",
             skipFiles = { "<node_internals>/**", "node_modules/**" },
           },
+          {
+            type = "pwa-node",
+            request = "launch",
+            name = "Pick script (npm)",
+            runTimeArgs = { "run", pick_script },
+            cwd = "${workspaceFolder}",
+            console = "integratedTerminal",
+            internalConsoleOptions = "neverOpen",
+            skipFiles = { "<node_internals>/**", "node_modules/**" },
+            sourceMaps = true,
+          }, 
         }
       end
 

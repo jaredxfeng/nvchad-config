@@ -34,7 +34,7 @@ return {
     config = function()
       require("mason-nvim-dap").setup({
         handlers = {}, -- auto-configures many common adapters
-        ensure_installed = { "codelldb", "debugpy", "delve" }, -- add whatever you need
+        ensure_installed = { "js-debug-adapter" }, -- add whatever you need
       })
     end,
   },

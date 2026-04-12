@@ -2,6 +2,40 @@ local dap = require("dap")
 local dapui = require("dapui")
 local map = vim.keymap.set
 
+dap.adapters["pwa-node"] = {
+  type = "server",
+  host = "::1", -- modern Node.js prefers IPv6 localhost
+  port = "${port}",
+  executable = {
+    command = "js-debug-adapter",  -- provided by Mason
+    args = { "${port}" },
+  },
+}
+
+-- Common configurations for JS/TS (works with Node, tsx, Next.js, etc.)
+local js_filetypes = { "typescript", "javascript", "typescriptreact", "javascriptreact" }
+for _, ft in ipairs(js_filetypes) do
+  dap.configurations[ft] = {
+    {
+      type = "pwa-node",
+      request = "launch",
+      name = "Launch file (Node.js)",
+      program = "${file}",
+      cwd = "${workspaceFolder}",
+      console = "integratedTerminal", -- shows output in a Neovim terminal
+      skipFiles = { "<node_internals>/**", "node_modules/**" },
+    },
+    {
+      type = "pwa-node",
+      request = "attach",
+      name = "Attach to running process",
+      processId = require("dap.utils").pick_process,
+      cwd = "${workspaceFolder}",
+      skipFiles = { "<node_internals>/**", "node_modules/**" },
+    },
+  }
+end
+
 -- === Your requested functionality ===
 map("n", "<leader>db", dap.toggle_breakpoint, { desc = "DAP: Toggle breakpoint on current line" })
 map("n", "<leader>dB", function()

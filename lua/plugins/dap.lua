@@ -2,7 +2,7 @@ return {
   {
     "mfussenegger/nvim-dap",
     dependencies = { "banjo/package-pilot.nvim" },
-    event = "VeryLazy",                    -- ← forces early loading so keymaps work immediately
+    event = "VeryLazy",
     config = function()
       local dap = require("dap")
 
@@ -78,7 +78,6 @@ return {
               end
               return { "run", script }
             end,
-            runtimeArgs = { "run", pick_script },
             cwd = "${workspaceFolder}",
             console = "integratedTerminal",
             internalConsoleOptions = "neverOpen",
@@ -111,13 +110,23 @@ return {
       map("n", "<leader>dr", dap.repl.open, { desc = "DAP: Open debug console (REPL)" })
       map("n", "<leader>dR", dap.repl.close, { desc = "DAP: Close debug console (REPL)" }) 
 
-      vim.notify("✅ DAP + TypeScript debugging ready!", vim.log.levels.INFO)
+      -- === Auto-open/close DAP UI (moved here so it works even before you press <leader>du) ===
+      dap.listeners.after.event_initialized["dapui_config"] = function()
+        require("dapui").open()
+      end
+      dap.listeners.before.event_terminated["dapui_config"] = function()
+        require("dapui").close()
+      end
+      dap.listeners.before.event_exited["dapui_config"] = function()
+        require("dapui").close()
+      end
     end,
   },
 
   {
     "rcarriga/nvim-dap-ui",
-    event = "VeryLazy",
+    lazy = true,
+    keys = { "<leader>du "},
     dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
     config = function()
       local dapui = require("dapui")
@@ -138,7 +147,19 @@ return {
 
   {
     "jay-babu/mason-nvim-dap.nvim",
-    event = "VeryLazy",
+    lazy = true,
+    keys = {       -- ← new: only loads on first debug keypress (removes the 170 ms from startup)
+      "<leader>db",
+      "<leader>dB",
+      "<leader>dc",
+      "<F5>",
+      "<F10>",
+      "<F11>",
+      "<F12>",
+      "<leader>du",
+      "<leader>dr",
+      "<leader>dR",
+    },
     dependencies = { "williamboman/mason.nvim" },
     config = function()
       require("mason-nvim-dap").setup({

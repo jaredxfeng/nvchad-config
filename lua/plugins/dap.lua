@@ -6,19 +6,34 @@ return {
     config = function()
       local dap = require("dap")
 
-      -- === JavaScript / TypeScript Debug Adapter (robust version) ===
-      dap.adapters["pwa-node"] = {
-        type = "server",
-        host = "::1",
-        port = "${port}",
-        executable = {
-          command = "node",
-          args = {
-            vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js",
-            "${port}",
-          },
-        },
+      -- === JavaScript / TypeScript Debug Adapter (robust version) ==
+      local mason_path = vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter"
+      local possible_paths = {
+        mason_path .. "/js-debug/src/dapDebugServer.js",
+        mason_path .. "/dist/src/dapDebugServer.js",
+        mason_path .. "/out/src/dapDebugServer.js",
+        mason_path .. "/js-debug/dist/src/dapDebugServer.js",
       }
+      local js_debug_path = nil
+      for _, p in ipairs(possible_paths) do
+        if vim.fn.filereadable(p) == 1 then
+          js_debug_path = p
+          break
+        end
+      end
+      if not js_debug_path then
+        vim.notify("js-debug-adapter not found! Run :MasonInstall js-debug-adapter again.", vim.log.levels.ERROR)
+      else
+        dap.adapters["pwa-node"] = {
+          type = "server",
+          host = "localhost",          -- changed from ::1 for better compatibility
+          port = "${port}",
+          executable = {
+            command = "node",
+            args = { js_debug_path, "${port}" },
+          },
+        }
+      end
 
       local function pick_script()
         local pilot = require("package-pilot")
@@ -108,7 +123,11 @@ return {
       end, { desc = "DAP: Toggle debug side panels" })
 
       map("n", "<leader>dr", dap.repl.open, { desc = "DAP: Open debug console (REPL)" })
-      map("n", "<leader>dR", dap.repl.close, { desc = "DAP: Close debug console (REPL)" }) 
+      map("n", "<leader>dR", dap.repl.close, { desc = "DAP: Close debug console (REPL)" })
+      map("n", "<leader>dq", function()
+        require("dap").terminate()
+        require("dapui").close()
+      end, { desc = "DAP: Terminate debug session" })
 
       -- === Auto-open/close DAP UI (moved here so it works even before you press <leader>du) ===
       dap.listeners.after.event_initialized["dapui_config"] = function()

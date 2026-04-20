@@ -6,7 +6,7 @@
 local M = {}
 
 M.base46 = {
-	theme = "everforest",
+	theme = "material-deep-ocean",
 
 	-- hl_override = {
 	-- 	Comment = { italic = true },
@@ -14,7 +14,10 @@ M.base46 = {
 	-- },
 }
 
--- M.nvdash = { load_on_startup = true }
+vim.wo.foldmethod = "expr"
+vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+
+M.nvdash = { load_on_startup = true }
 -- M.ui = {
 --       tabufline = {
 --          lazyload = false

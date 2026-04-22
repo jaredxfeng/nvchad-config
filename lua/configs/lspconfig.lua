@@ -9,5 +9,5 @@ vim.lsp.config.pyright = {
   },
 }
 
-local servers = { "html", "cssls", "ts_ls", "pyright" }
+local servers = { "html", "cssls", "ts_ls", "pyright", "jsonls" }
 vim.lsp.enable(servers)

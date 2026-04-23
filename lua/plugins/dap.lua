@@ -24,7 +24,7 @@ return {
       if not js_debug_path then
         vim.notify("js-debug-adapter not found! Run :MasonInstall js-debug-adapter again.", vim.log.levels.ERROR)
       else
-        dap.adapters["pwa-node"] = {
+        local adapter = {
           type = "server",
           host = "localhost",          -- changed from ::1 for better compatibility
           port = "${port}",
@@ -33,6 +33,9 @@ return {
             args = { js_debug_path, "${port}" },
           },
         }
+
+        dap.adapters["pwa-node"] = adapter
+        dap.adapters["node"] = adapter
       end
 
       local function pick_script()
@@ -99,7 +102,23 @@ return {
             skipFiles = { "<node_internals>/**", "node_modules/**" },
             sourceMaps = true,
             stopOnEntry = true,
-          }, 
+          },
+          {
+            type = "pwa-node",
+            request = "launch",
+            name = "Debug Jest Current File",
+            runtimeExecutable = "node",
+            runtimeArgs = {
+              "${workspaceFolder}/node_modules/jest/bin/jest",
+              "--runInBand",
+              "${file}",
+            },
+            cwd = "${workspaceFolder}",
+            console = "integratedTerminal",
+            internalConsoleOptions = "neverOpen",
+            skipFiles = { "<node_internals>/**", "node_modules/**" },
+            sourceMaps = true,
+          },
         }
       end
 
@@ -138,6 +157,9 @@ return {
       end
       dap.listeners.before.event_exited["dapui_config"] = function()
         require("dapui").close()
+      end
+      if dap.providers and dap.providers.configs then
+        dap.providers.configs["dap.launch.json"] = nil
       end
     end,
   },

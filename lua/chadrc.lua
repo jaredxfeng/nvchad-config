@@ -6,7 +6,7 @@
 local M = {}
 
 M.base46 = {
-	theme = "material-deep-ocean",
+	theme = "aylin",
 }
 
 vim.wo.foldmethod = "expr"
